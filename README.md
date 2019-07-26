@@ -14,7 +14,8 @@ If you find this work useful in your research, please consider citing the paper:
 # Requirements
 We strongly recommend to run the codes in NVidia-Docker. Install both `docker` and `nvidia-docker` (please find instructions from their respective installation pages).
 After the docker installations, pull pytorch docker image with the following command:
-
+`docker pull nvcr.io/nvidia/pytorch:18.04-py3`
+and run the image using the command:
 `nvidia-docker run --rm -ti --ipc=host nvcr.io/nvidia/pytorch:18.04-py3`
 
 Further software requirements are listed in `requirements.txt`. 
@@ -36,7 +37,7 @@ Place the dataset in `../dataset/` folder. (`dataset` and `lsc-cnn` folders shou
    -- main.py
    -- ....
 -- dataset
-   --part_A
+   --STpart_A
      -- test_data
 	    -- ground-truth
 	    -- images
@@ -82,7 +83,7 @@ Run the following code to dump the dataset for `lsc-cnn`
 `python main.py --dataset="parta" --gpu=2 --start-epoch=0 --epochs=30`
 
 ```
---dataset = parta / qnrf / partb
+--dataset = parta / ucfqnrf / partb
 --gpu = GPU number
 --epochs = Number of epochs to train. [For QNRF set --epochs=50]
 ```
@@ -98,7 +99,7 @@ Run the following code to dump the dataset for `lsc-cnn`
 
 ### For testing on QNRF
 
-`python main.py --dataset="qnrf" --gpu=2 --start-epoch=46 --epochs=46 --threshold=0.20`
+`python main.py --dataset="ucfqnrf" --gpu=2 --start-epoch=46 --epochs=46 --threshold=0.20`
 
 - All the metrics are displayed once the above code completes its run.
 
