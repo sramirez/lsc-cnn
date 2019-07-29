@@ -1003,14 +1003,19 @@ def train_networks(network, dataset, network_functions, log_path):
 """
 
 def train():
-    global dataset_paths, model_save_dir, batch_size, crop_size, dataset
+    global dataset_paths, model_save_dir, batch_size, crop_size, dataset, args
     print(dataset_paths, dataset)
     if not dataset.dataset_ready:
         print ('CREATING DATASET...')
+        if args.dataset == "ucfqnrf":
+            image_scale_factor = 2
+        else:
+            image_scale_factor = 1
         dataset.create_dataset_files(dataset_paths,
                                      image_crop_size=crop_size, 
                                      image_roi_size=80,
                                      image_roi_stride=72,
+                                     image_scale_factor=image_scale_factor,
                                      prediction_downscale_factor=output_downscale,
                                      valid_set_size=validation_set,
                                      use_rgb=True,
