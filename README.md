@@ -1,6 +1,10 @@
 # LSC-CNN
 
-This repository is the pytorch implementation for the crowd counting model, LSC-CNN, proposed in the paper - [**Locate, Size and Count: Accurately Resolving People in Dense Crowds via Detection**](https://arxiv.org/pdf/1906.07538.pdf).
+This repository is a fork of a fork of the original pytorch implementation of LSC-CNN. Here we combine the test elements of vlad3996's with the train elements of the original implementation. 
+
+
+
+# Instructions from original repo:
 
 If you find this work useful in your research, please consider citing the paper:
 ```
@@ -11,7 +15,7 @@ If you find this work useful in your research, please consider citing the paper:
     Year = {2019}
 }
 ```
-# Requirements
+## Requirements
 We strongly recommend to run the codes in NVidia-Docker. Install both `docker` and `nvidia-docker` (please find instructions from their respective installation pages).
 After the docker installations, pull pytorch docker image with the following command:
 `docker pull nvcr.io/nvidia/pytorch:18.04-py3`
@@ -26,7 +30,7 @@ The code has been run and tested on `Python 3.6.3`, `Ubuntu 14.04.5 LTS` and `Cu
 
 _Please NOTE that `Python 2.7` is not supported and the code would ONLY work on `Python 3` versions._
 
-# Dataset Download
+## Dataset Download
 Download Shanghaitech dataset from [here](https://github.com/desenzhou/ShanghaiTechDataset).
 Download UCF-QNRF dataset from [here](http://crcv.ucf.edu/data/ucf-qnrf/).
 
@@ -51,12 +55,12 @@ Place the dataset in `../dataset/` folder. (`dataset` and `lsc-cnn` folders shou
       -- ...
 ```
 
-## Pretrained Models
+### Pretrained Models
 The pretrained models for testing can be downloaded from [here](https://drive.google.com/open?id=1hlJg4ux_BI3z_8zRdwwE7oQoumzSYIEg).
 
 For evaluating on any pretrained model, place the corresponding `models` from the aforementioned link to `lsc-cnn` folder and follow instructions in Testing section.
 
-# Usage
+## Usage
  Clone the repository.
 `git clone https://github.com/val-iisc/lsc-cnn.git`
 
@@ -68,7 +72,7 @@ Download `models` folders to `lsc-cnn`.
 
 Download Imagenet pretrained VGG weights from [here](https://drive.google.com/open?id=1hlJg4ux_BI3z_8zRdwwE7oQoumzSYIEg) (Download the `imagenet_vgg_weights` folder) and place it in the parent directory of `lsc-cnn`.
 
-## Preparing the Dataset
+### Preparing the Dataset
 Run the following code to dump the dataset for `lsc-cnn`
 
 `python main.py --dataset="parta" --gpu=<gpu_number>`
@@ -77,7 +81,7 @@ Run the following code to dump the dataset for `lsc-cnn`
 
 *Dataset dump size for `ST_PartA is ~13 GB`, for `QNRF is ~150 GB`, and for `ST_PartB is ~35 GB`, so make sure there is sufficient disk space before training/testing.*
 
-## Training
+### Training
 - For training `lsc-cnn` run:
 
 `python main.py --dataset="parta" --gpu=2 --start-epoch=0 --epochs=30`
@@ -88,16 +92,16 @@ Run the following code to dump the dataset for `lsc-cnn`
 --epochs = Number of epochs to train. [For QNRF set --epochs=50]
 ```
 
-## Testing
-### For testing on Part-A
+### Testing
+#### For testing on Part-A
 
 `python main.py --dataset="parta" --gpu=2 --start-epoch=13 --epochs=13 --threshold=0.21`
 
-### For testing on Part-B
+#### For testing on Part-B
 
 `python main.py --dataset="partb" --gpu=2 --start-epoch=24 --epochs=24 --threshold=0.25`
 
-### For testing on QNRF
+#### For testing on QNRF
 
 `python main.py --dataset="ucfqnrf" --gpu=2 --start-epoch=46 --epochs=46 --threshold=0.20`
 
@@ -117,9 +121,6 @@ cd utils/mle_function
 ```
 This generates an `error_function.so` file in the `./lsc-cnn` directory which is used by `main.py` for computing the MLE metric.
 
-# Test Outputs
+## Test Outputs
 Test outputs consist of box predictions for validation set at `models/dump` and that of the test set at `models/dump_test`.
-
-## Contact
-For further queries, please mail at `pvskand <at> gmail <dot> com`.
 
