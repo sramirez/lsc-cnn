@@ -1064,19 +1064,19 @@ if __name__ == '__main__':
 
     # -- Dataset paths
     if args.dataset == "parta":    
-        dataset_paths = {'test': ['../dataset/ST_partA/test_data/images',
-                               '../dataset/ST_partA/test_data/ground_truth'],
-                         'train': ['../dataset/ST_partA/train_data/images',
-                                '../dataset/ST_partA/train_data/ground_truth']}
+        dataset_paths = {'test': ['../dataset/ShanghaiTech/part_A/test_data/images',
+                               '../dataset/ShanghaiTech/part_A/test_data/ground-truth'],
+                         'train': ['../dataset/ShanghaiTech/part_A/train_data/images',
+                                '../dataset/ShanghaiTech/part_A/train_data/ground-truth']}
         validation_set = 30
 
         path = '../dataset/stparta_dotmaps_predscale0.5_rgb_ddcnn++_test_val_30'
         output_downscale = 2
     elif args.dataset == "partb":
-        dataset_paths = {'test': ['../dataset/ST_partB/test_data/images',
-                               '../dataset/ST_partB/test_data/ground_truth'],
-                         'train': ['../dataset/ST_partB/train_data/images',
-                                '../dataset/ST_partB/train_data/ground_truth']}
+        dataset_paths = {'test': ['../dataset/ShanghaiTech/part_B/test_data/images',
+                               '../dataset/ShanghaiTech/part_B/test_data/ground-truth'],
+                         'train': ['../dataset/ShanghaiTech/part_B/train_data/images',
+                                '../dataset/ShanghaiTech/part_B/train_data/ground-truth']}
         validation_set = 80
         output_downscale = 2
 
@@ -1098,5 +1098,5 @@ if __name__ == '__main__':
     dataset = DataReader(path)
     
     # -- Train the model
-    train()
+    # train()
 

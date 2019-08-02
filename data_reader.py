@@ -785,8 +785,12 @@ class DataReader:
         if self.gt_roi_readout_function is None:
             # ASSUMES: ST PartA Dataset
             tmp, _ = os.path.splitext(file_name)
-            data_mat = scipy.io.loadmat(os.path.join(paths[1],
-                                                     'GT_' + tmp + '.mat'))
+            mat_path = os.path.join(paths[1],'GT_' + tmp + '.mat')
+            # print("TRYING TO OPEN: {}".format(mat_path))
+            assert(os.path.exists(mat_path)),'{} does not exist!'.format(mat_path)
+            data_mat = scipy.io.loadmat(mat_path)
+            # data_mat = scipy.io.loadmat(os.path.join(paths[1],
+                                                     # 'GT_' + tmp + '.mat'))
             gt_annotation_points = data_mat['image_info'][0, 0]['location'][0, 0]
             gt_annotation_points -= 1  # MATLAB INDICES
             gt_roi_map = None

@@ -6,13 +6,9 @@ import torch
 import torch.nn as nn
 
 class LSCCNN(nn.Module):
-    # nofreeze - 'True' if no layers are to be frozen during training
-    # trainable - if False, whole network has requires_grad=False set
-    def __init__(self, args, cfg=None, name='scale_4', init_weights=True, batch_norm=False, nofreeze=True,
-                 output_downscale=None, trainable=True):
+    def __init__(self, name='scale_4'):
         super(LSCCNN, self).__init__()
         self.name = name
-        self.args = args
         # OPT: Use torchvision.transforms instead
         if torch.cuda.is_available():
             self.rgb_means = torch.cuda.FloatTensor([104.008, 116.669, 122.675])
@@ -121,7 +117,7 @@ class LSCCNN(nn.Module):
             tensor, _ = torch.max(tensor, ax, keepdim=True)
         return tensor
 
-    def forward(self, x, init):
+    def forward(self, x):
         mean_sub_input = x
         mean_sub_input -= self.rgb_means
 
