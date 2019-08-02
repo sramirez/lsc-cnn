@@ -1,7 +1,6 @@
 # LSC-CNN
 
-This repository is a fork of a fork of the original pytorch implementation of LSC-CNN. Here we combine the test elements of vlad3996's with the train elements of the original implementation. 
-
+This repository is a fork of a fork of the original pytorch implementation of LSC-CNN. Here we combine the test elements of vlad3996's with the train elements of the original implementation. This is a submodule is an overarching docker code [here](https://github.com/levan92/lsc-cnn_docker). 
 
 
 # Instructions from original repo:
