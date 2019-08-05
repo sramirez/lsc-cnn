@@ -58,7 +58,7 @@ total_dur = 0
 frame_count = 0
 total_dur_count = 0
 # frame_skip = 1
-# cv2.namedWindow('LSC-CNN', cv2.WINDOW_NORMAL)
+cv2.namedWindow('LSC-CNN', cv2.WINDOW_NORMAL)
 while cap.isOpened():
     ret, frame = cap.read()
     if not ret:
@@ -70,23 +70,23 @@ while cap.isOpened():
         continue
     tic = time.time()
     show_img, count = cc.visualise_count(frame,)
-    # print('Current crowd count: {}'.format(count))
-    # draw_count(show_img, count, ignore_polys=resized_dead_polygons)
-    # toc = time.time()
-    # total_dur += (toc - tic)
-    # total_dur_count += 1
+    print('Current crowd count: {}'.format(count))
+    draw_count(show_img, count, ignore_polys=resized_dead_polygons)
+    toc = time.time()
+    total_dur += (toc - tic)
+    total_dur_count += 1
     # cv2.imwrite(os.path.join(out_dir,'{}.png'.format(frame_count)),frame)
-    # out_vid.write(show_img)
+    out_vid.write(show_img)
     out_text = '{},{},{}\n'.format(round(frame_count/vid_fps), frame_count, count)
-    print(out_text)
+    # print(out_text)
     out_csv.write(out_text)
-    # cv2.imshow('LSC-CNN', show_img)
-    # if cv2.waitKey(1) & 0xff == ord('q'):
-    #     break
+    cv2.imshow('LSC-CNN', show_img)
+    if cv2.waitKey(1) & 0xff == ord('q'):
+        break
     cv2.waitKey(5)
 
 cap.release()
-# out_vid.release()
+out_vid.release()
 out_csv.close()
 
-# print('Avrg inference time:{}'.format(total_dur/total_dur_count))
+print('Avrg inference time:{}'.format(total_dur/total_dur_count))
