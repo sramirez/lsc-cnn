@@ -2,7 +2,9 @@ import argparse
 import os
 import cv2
 import time
+
 from crowdcount_lsccnn import CrowdCounter
+from drawer import draw_count
 
 parser = argparse.ArgumentParser()
 parser.add_argument('video', help='video to process')
@@ -20,6 +22,7 @@ frame_skip = 1
 frame_w = cap.get(3)
 frame_h = cap.get(4)
 vid_fps = cap.get(5)
+# fourcc = cv2.VideoWriter_fourcc('H','2','6','4')
 fourcc = cv2.VideoWriter_fourcc('M','J','P','G')
 out_vid = cv2.VideoWriter(basename+'_cc.avi',fourcc, vid_fps, (int(frame_w), int(frame_h)))
 cc = CrowdCounter()
@@ -36,6 +39,7 @@ while cap.isOpened():
     tic = time.time()
     show_img, count = cc.visualise_count(frame)
     print('Current crowd count: {}'.format(count))
+    draw_count(show_img, count)
     toc = time.time()
     total_dur += (toc - tic)
     # cv2.imshow('', show_img)
