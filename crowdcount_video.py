@@ -33,7 +33,8 @@ config = configparser.ConfigParser()
 config.read(args.cfg)
 # print(config.sections())
 skyline = int(config['SKYLINE']['Y'])
-skyline_polygon = [(0,0), (0,skyline), (frame_w-1, skyline), (frame_w-1, 0)]
+skybuffer = 10
+skyline_polygon = [(0-skybuffer,0-skybuffer), (0-skybuffer,skyline), (frame_w-1+skybuffer, skyline), (frame_w-1+skybuffer, 0-skybuffer)]
 dead_polygons = []
 for poly in config['POLYGONS']:
     polystring = [int(x) for x in config['POLYGONS'][poly].split(',')]
@@ -44,7 +45,8 @@ dead_polygons.append(skyline_polygon)
 compress_ratio = float(config['VIDEO']['CompressRatio'])
 assert compress_ratio > 0,'compress ratio given is negative.'
 
-cc = CrowdCounter(compress_ratio=compress_ratio, omit_scales=[], ignore_polys=dead_polygons)
+cc = CrowdCounter(frame_w,  frame_h, compress_ratio=compress_ratio, omit_scales=[], ignore_polys=dead_polygons)
+resized_dead_polygons = cc.ignore_polys_raw 
 
 total_dur = 0
 frame_count = 0
@@ -61,7 +63,7 @@ while cap.isOpened():
     tic = time.time()
     show_img, count = cc.visualise_count(frame,)
     print('Current crowd count: {}'.format(count))
-    draw_count(show_img, count, ignore_polys=dead_polygons)
+    draw_count(show_img, count, ignore_polys=resized_dead_polygons)
     toc = time.time()
     total_dur += (toc - tic)
     total_dur_count += 1

@@ -17,22 +17,12 @@ PRED_DOWNSCALE_FACTORS=(8, 4, 2, 1)
 GAMMA=(1, 1, 2, 4)
 NUM_BOXES_PER_SCALE=3
 
-def preprocess(img, compress_ratio=1):
-    ## Resizing it
-    img_h, img_w = img.shape[:2]
-    new_img_h = int(img_h/compress_ratio)
-    new_img_w = int(img_w/compress_ratio)
-    img = cv2.resize(img, (new_img_w, new_img_h))
-    ## Making it a multiple of 16
-    if new_img_w % 16 or new_img_h % 16:
-        img = cv2.resize(img, (new_img_w//16*16, new_img_h//16*16))
-    if compress_ratio != 1:
-        print('Resized to {}'.format(img.shape))
-    ## Converting to torch tensor
-    return torch.from_numpy(img.transpose((2, 0, 1)).astype(np.float32)).unsqueeze(0), img
+
 
 class CrowdCounter(object):
     def __init__(self, 
+                img_w,
+                img_h,
                 compress_ratio=1.0, 
                 omit_scales=[], 
                 ignore_polys=[],
@@ -58,13 +48,31 @@ class CrowdCounter(object):
 
         self.box_sizes, self.box_sizes_flat = compute_boxes_and_sizes(pred_downscale_factors, gamma, num_boxes_per_scale)
 
-        self.compress_ratio = compress_ratio
         self.omit_scales = omit_scales
-        self.ignore_polys = [Polygon(polyst) for polyst in ignore_polys]
 
-        # print('BOX SIZES: {}'.format(self.box_sizes))
-        # print('BOX SIZES: {}'.format(self.box_sizes_flat))
+        self.prepreprocess(img_w, img_h, compress_ratio=compress_ratio, ignore_polys=ignore_polys)
 
+    def prepreprocess(self, img_w, img_h, compress_ratio=1.0, ignore_polys=[]):
+        self.ignore_polys = []
+        self.ignore_polys_raw = []
+        self.new_img_h = int((img_h/compress_ratio)//16*16)
+        self.new_img_w = int((img_w/compress_ratio)//16*16)
+        new_compress_ratio_w = img_w / self.new_img_w
+        new_compress_ratio_h = img_h / self.new_img_h
+        for polyst in ignore_polys:
+            new_polyst = []
+            for x,y in polyst:
+                x = int(x/new_compress_ratio_w)
+                y = int(y/new_compress_ratio_h)
+                new_polyst.append((x,y))
+            self.ignore_polys_raw.append(new_polyst)
+            self.ignore_polys.append(Polygon(new_polyst))
+
+    def preprocess(self, img):
+        ## Resizing it
+        img = cv2.resize(img, (self.new_img_w, self.new_img_h))
+        ## Converting to torch tensor
+        return torch.from_numpy(img.transpose((2, 0, 1)).astype(np.float32)).unsqueeze(0), img
 
     def predict(self, img, nms_thresh=None):
         '''
@@ -72,7 +80,7 @@ class CrowdCounter(object):
         '''
 
         if isinstance(img, np.ndarray):
-            img_tensor, _ = preprocess(img, compress_ratio=self.compress_ratio)
+            img_tensor, _ = self.preprocess(img)
         else:
             img_tensor = img
         assert isinstance(img_tensor, torch.Tensor),'Image Tensor is not a torch.Tensor!'
@@ -96,7 +104,7 @@ class CrowdCounter(object):
         :param omit_scales: list of scale indices where 0 refer to the smallest BBs and 3 refer to the largest BBs (Yellow: Largest, Red: Medium, Green: Medium-Small, Blue: Smallest)
         :param ignore_polys: list of polygons, each polygon being a list of tuples of (x,y) containing at least 3 points in one polygon. 
         '''
-        img_tensor, small_img = preprocess(frame, compress_ratio=self.compress_ratio)
+        img_tensor, small_img = self.preprocess(frame)
         pred_dot_map, pred_box_map = self.predict(img_tensor, nms_thresh=nms_thresh)
         boxed_img, recount = get_boxed_img(small_img, pred_box_map, pred_box_map, pred_dot_map, self.output_downscale, self.box_sizes, self.box_sizes_flat, thickness=2, multi_colours=True, omit_scales=self.omit_scales, ignore_polys=self.ignore_polys)
         return boxed_img, recount
