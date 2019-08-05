@@ -4,7 +4,9 @@ import torch
 import numpy as np
 
 from network import LSCCNN
-from utils import compute_boxes_and_sizes, get_upsample_output, get_box_and_dot_maps, get_boxed_img 
+from utils_lsccnn import compute_boxes_and_sizes, get_upsample_output, get_box_and_dot_maps, get_boxed_img 
+
+from drawer import draw_count
 
 CURR_DIR = os.path.abspath(os.path.join(os.path.abspath(__file__), os.pardir))
 shanghaitechA_weights = 'models/part_a_scale_4_epoch_13_weights.pth'
@@ -18,8 +20,8 @@ NUM_BOXES_PER_SCALE=3
 def preprocess(img, compress_ratio=1):
     ## Resizing it
     img_h, img_w = img.shape[:2]
-    new_img_h = img_h//compress_ratio
-    new_img_w = img_w//compress_ratio
+    new_img_h = int(img_h/compress_ratio)
+    new_img_w = int(img_w/compress_ratio)
     img = cv2.resize(img, (new_img_w, new_img_h))
     ## Making it a multiple of 16
     if new_img_w % 16 or new_img_h % 16:
@@ -73,7 +75,6 @@ class CrowdCounter(object):
 
         return pred_dot_map, pred_box_map
 
-
     def get_count(self, frame, compress_ratio=1, nms_thresh=None):
         pred_dot_map, _ = self.predict(frame, compress_ratio=compress_ratio, nms_thresh=nms_thresh)
         return np.where(pred_dot_map>0)[1].shape[0]
@@ -87,21 +88,25 @@ class CrowdCounter(object):
 
 if __name__ == '__main__':
     cc = CrowdCounter()
-    img_path = 'shanghai_test_subset/IMG/shanghai_IMG_128.jpg'
+    # img_path = 'shanghai_test_subset/IMG/shanghai_IMG_181.jpg'
+    img_path = 'golf_crowd.jpg'
     assert os.path.exists(img_path)
     img = cv2.imread(img_path)
-    show_img, count = cc.visualise_count(img)
+    show_img, count = cc.visualise_count(img, compress_ratio=1.1)
     print(img.shape)
     print("Predicted count: {}".format(count))    
     print(show_img.shape)
+
+    gt_count = None
+    # import scipy.io
+    # gt_path = 'shanghai_test_subset/GT/shanghai_IMG_181.mat'
+    # assert os.path.exists(gt_path)
+    # data_mat = scipy.io.loadmat(gt_path)
+    # gt_pts = data_mat['image_info'][0][0][0][0][0]
+    # print('GT count: {}'.format(len(gt_pts)))
+    # gt_count = len(gt_pts)
+
+    draw_count(show_img, count, gt_count=gt_count)
     cv2.imwrite(os.path.basename(img_path).split('.')[0]+'_crowdcount.png', show_img)
-
-    import scipy.io
-    gt_path = 'shanghai_test_subset/GT/shanghai_IMG_128.mat'
-    assert os.path.exists(gt_path)
-    data_mat = scipy.io.loadmat(gt_path)
-    gt_pts = data_mat['image_info'][0][0][0][0][0]
-    print('GT count: {}'.format(len(gt_pts)))
-
     cv2.imshow('LSC-CNN', show_img)
     cv2.waitKey(0)
