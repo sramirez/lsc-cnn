@@ -90,10 +90,19 @@ def get_box_and_dot_maps(pred, nms_thresh, BOXES):
     return nms_out, h
 
 
-def get_boxed_img(image, h_map, w_map, gt_pred_map, prediction_downscale, BOXES, BOX_SIZE_BINS,
-                  thickness=1, multi_colours=False):
+def get_boxed_img(image, h_map, w_map, gt_pred_map, prediction_downscale, 
+                BOXES, BOX_SIZE_BINS, thickness=1, 
+                multi_colours=False, omit_scales=[]):
+    '''
+    :param omit_scales: list of scale indices where 0 refer to the smallest BBs and 3 refer to the largest BBs
+    '''
+
+    if len(omit_scales) > 0:
+        assert np.all([0<=x<=3 for x in omit_scales]),'Invalid scale index given for omit scales'
     if multi_colours:
-        colours = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (0, 255, 255)] # colours for [1/8, 1/4, 1/2] scales
+        colours = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (0, 255, 255)] 
+        # colours for [1/8, 1/4, 1/2] scales
+        # Yellow: Largest, Red: Medium, Green: Medium-Small, Blue: Smallest
 
     if image.shape[2] != 3:
         boxed_img = image.astype(np.uint8).transpose((1, 2, 0)).copy()
@@ -103,19 +112,27 @@ def get_boxed_img(image, h_map, w_map, gt_pred_map, prediction_downscale, BOXES,
 
     H, W = boxed_img.shape[:2]
 
+    recount = 0
     Y, X = head_idx[-2] , head_idx[-1]
     for y, x in zip(Y, X):
 
         h, w = h_map[y, x]*prediction_downscale, w_map[y, x]*prediction_downscale
 
+        index = (BOX_SIZE_BINS.index(h // prediction_downscale)) // 3
+        if index in omit_scales:
+            continue
+
         if multi_colours:
-            selected_colour = colours[(BOX_SIZE_BINS.index(h // prediction_downscale)) // 3]
+            selected_colour = colours[index]
         else:
             selected_colour = (0, 255, 0)
+
         if h//2 in BOXES[3] or h//2 in BOXES[2]:
             t = 1
         else:
             t = thickness
+
+        recount += 1
         cv2.rectangle(boxed_img, (max(int(prediction_downscale * x - w / 2), 0), max(int(prediction_downscale * y - h / 2), 0)),
                       (min(int(prediction_downscale * x + w - w / 2), W), min(int(prediction_downscale * y + h - h / 2), H)), selected_colour, t)
-    return boxed_img#.transpose((2, 0, 1))
+    return boxed_img, recount #.transpose((2, 0, 1))

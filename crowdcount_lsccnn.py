@@ -52,6 +52,8 @@ class CrowdCounter(object):
         self.output_downscale = output_downscale
 
         self.box_sizes, self.box_sizes_flat = compute_boxes_and_sizes(pred_downscale_factors, gamma, num_boxes_per_scale)
+        print('BOX SIZES: {}'.format(self.box_sizes))
+        # print('BOX SIZES: {}'.format(self.box_sizes_flat))
 
 
     def predict(self, img, compress_ratio=1, nms_thresh=None):
@@ -79,12 +81,14 @@ class CrowdCounter(object):
         pred_dot_map, _ = self.predict(frame, compress_ratio=compress_ratio, nms_thresh=nms_thresh)
         return np.where(pred_dot_map>0)[1].shape[0]
 
-    def visualise_count(self, frame, compress_ratio=1, nms_thresh=None):
+    def visualise_count(self, frame, compress_ratio=1, nms_thresh=None, omit_scales=[]):
+        '''
+        :param omit_scales: list of scale indices where 0 refer to the smallest BBs and 3 refer to the largest BBs (Yellow: Largest, Red: Medium, Green: Medium-Small, Blue: Smallest)
+        '''
         img_tensor, small_img = preprocess(frame, compress_ratio=compress_ratio)
         pred_dot_map, pred_box_map = self.predict(img_tensor, compress_ratio=compress_ratio, nms_thresh=nms_thresh)
-        boxed_img = get_boxed_img(small_img, pred_box_map, pred_box_map, pred_dot_map, self.output_downscale, self.box_sizes, self.box_sizes_flat, thickness=2, multi_colours=True)
-
-        return boxed_img, np.where(pred_dot_map>0)[1].shape[0]
+        boxed_img, recount = get_boxed_img(small_img, pred_box_map, pred_box_map, pred_dot_map, self.output_downscale, self.box_sizes, self.box_sizes_flat, thickness=2, multi_colours=True, omit_scales=omit_scales)
+        return boxed_img, recount
 
 if __name__ == '__main__':
     cc = CrowdCounter()
@@ -92,7 +96,8 @@ if __name__ == '__main__':
     img_path = 'golf_crowd.jpg'
     assert os.path.exists(img_path)
     img = cv2.imread(img_path)
-    show_img, count = cc.visualise_count(img, compress_ratio=1.1)
+    show_img, count = cc.visualise_count(img, compress_ratio=1.1, omit_scales=[3])
+    # show_img, count = cc.visualise_count(img, compress_ratio=1.1, omit_scales=[])
     print(img.shape)
     print("Predicted count: {}".format(count))    
     print(show_img.shape)
@@ -108,5 +113,6 @@ if __name__ == '__main__':
 
     draw_count(show_img, count, gt_count=gt_count)
     cv2.imwrite(os.path.basename(img_path).split('.')[0]+'_crowdcount.png', show_img)
+    cv2.namedWindow('LSC-CNN', cv2.WINDOW_NORMAL)
     cv2.imshow('LSC-CNN', show_img)
     cv2.waitKey(0)
