@@ -2,7 +2,7 @@ import cv2
 import torch
 import numpy as np
 from utils_nms import apply_nms
-
+from shapely.geometry import Point
 
 def compute_boxes_and_sizes(PRED_DOWNSCALE_FACTORS, GAMMA, NUM_BOXES_PER_SCALE):
 
@@ -89,16 +89,27 @@ def get_box_and_dot_maps(pred, nms_thresh, BOXES):
     nms_out, h = box_NMS(pred, nms_thresh, BOXES)
     return nms_out, h
 
+def in_ignore_zones(x, y, ignore_polys):
+    point = Point(x,y)
+    for poly in ignore_polys:
+        if poly.contains(point):
+            # print('IGNORED: {} in {}'.format(point, poly))
+            return True
+    return False
 
 def get_boxed_img(image, h_map, w_map, gt_pred_map, prediction_downscale, 
                 BOXES, BOX_SIZE_BINS, thickness=1, 
-                multi_colours=False, omit_scales=[]):
+                multi_colours=False, omit_scales=[], ignore_polys=[]):
     '''
     :param omit_scales: list of scale indices where 0 refer to the smallest BBs and 3 refer to the largest BBs
+    :param ignore_polys: list of shapely Polygon objects
     '''
 
     if len(omit_scales) > 0:
         assert np.all([0<=x<=3 for x in omit_scales]),'Invalid scale index given for omit scales'
+    # if len(ignore_polys) > 0: 
+        # ignore_polys = [Polygon(polyst) for polyst in ignore_polys]
+    
     if multi_colours:
         colours = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (0, 255, 255)] 
         # colours for [1/8, 1/4, 1/2] scales
@@ -115,13 +126,13 @@ def get_boxed_img(image, h_map, w_map, gt_pred_map, prediction_downscale,
     recount = 0
     Y, X = head_idx[-2] , head_idx[-1]
     for y, x in zip(Y, X):
-
         h, w = h_map[y, x]*prediction_downscale, w_map[y, x]*prediction_downscale
 
         index = (BOX_SIZE_BINS.index(h // prediction_downscale)) // 3
         if index in omit_scales:
             continue
-
+        if in_ignore_zones(prediction_downscale*x, prediction_downscale*y, ignore_polys):
+            continue
         if multi_colours:
             selected_colour = colours[index]
         else:

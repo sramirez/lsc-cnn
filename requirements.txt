@@ -10,3 +10,4 @@ torch==0.4.1
 torchvision==0.2.0
 numpy==1.15.4
 tqdm==4.19.4
+shapely==1.6.4
