@@ -55,10 +55,12 @@ def get_upsample_output(model_output, output_downscale):
     return upsample_pred
 
 
-def box_NMS(predictions, nms_thresh, BOXES):
+def box_NMS(predictions, nms_thresh, BOXES, omit_scales=[]):
     Scores = []
     Boxes = []
     for k in range(len(BOXES)):
+        # if k in omit_scales:
+        #     continue
         scores = np.max(predictions[k], axis=0)
         boxes = np.argmax(predictions[k], axis=0)
         # index the boxes with BOXES to get h_map and w_map (both are the same for us)
@@ -83,10 +85,10 @@ def box_NMS(predictions, nms_thresh, BOXES):
     return nms_out, box_out
 
 
-def get_box_and_dot_maps(pred, nms_thresh, BOXES):
+def get_box_and_dot_maps(pred, nms_thresh, BOXES, omit_scales=[]):
     assert (len(pred) == 4)
     # NMS on the multi-scale outputs
-    nms_out, h = box_NMS(pred, nms_thresh, BOXES)
+    nms_out, h = box_NMS(pred, nms_thresh, BOXES, omit_scales=omit_scales)
     return nms_out, h
 
 def in_ignore_zones(x, y, ignore_polys):
@@ -107,9 +109,6 @@ def get_boxed_img(image, h_map, w_map, gt_pred_map, prediction_downscale,
 
     if len(omit_scales) > 0:
         assert np.all([0<=x<=3 for x in omit_scales]),'Invalid scale index given for omit scales'
-    # if len(ignore_polys) > 0: 
-        # ignore_polys = [Polygon(polyst) for polyst in ignore_polys]
-    
     if multi_colours:
         colours = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (0, 255, 255)] 
         # colours for [1/8, 1/4, 1/2] scales

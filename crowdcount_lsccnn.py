@@ -17,8 +17,6 @@ PRED_DOWNSCALE_FACTORS=(8, 4, 2, 1)
 GAMMA=(1, 1, 2, 4)
 NUM_BOXES_PER_SCALE=3
 
-
-
 class CrowdCounter(object):
     def __init__(self, 
                 img_w,
@@ -91,7 +89,7 @@ class CrowdCounter(object):
 
         if nms_thresh is None:
             nms_thresh = self.nms_thresh
-        pred_dot_map, pred_box_map = get_box_and_dot_maps(upsampled_out, nms_thresh, self.box_sizes)
+        pred_dot_map, pred_box_map = get_box_and_dot_maps(upsampled_out, nms_thresh, self.box_sizes, omit_scales=self.omit_scales)
 
         return pred_dot_map, pred_box_map
 

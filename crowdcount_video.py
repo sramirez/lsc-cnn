@@ -26,7 +26,7 @@ frame_h = cap.get(4)
 vid_fps = cap.get(5)
 # fourcc = cv2.VideoWriter_fourcc('H','2','6','4')
 fourcc = cv2.VideoWriter_fourcc('M','J','P','G')
-out_vid = cv2.VideoWriter(basename+'_cc.avi',fourcc, vid_fps, (int(frame_w), int(frame_h)))
+# out_vid = cv2.VideoWriter(basename+'_cc.avi',fourcc, vid_fps, (int(frame_w), int(frame_h)))
 
 assert os.path.exists(args.cfg),'Config file given does not exist!'
 config = configparser.ConfigParser()
@@ -44,37 +44,49 @@ dead_polygons.append(skyline_polygon)
 
 compress_ratio = float(config['VIDEO']['CompressRatio'])
 assert compress_ratio > 0,'compress ratio given is negative.'
+omit_scales =[int(x) for x in config['VIDEO']['OmitScales'].split(',')]
+sample_rate_sec = float(config['VIDEO']['SampleRate'])
+sample_rate_frame = int(vid_fps * sample_rate_sec)
 
-cc = CrowdCounter(frame_w,  frame_h, compress_ratio=compress_ratio, omit_scales=[], ignore_polys=dead_polygons)
+out_csv = open(basename+'_output.csv','w')
+out_csv.write('TimeStamp(sec), FrameCount, PeopleCount\n')
+
+cc = CrowdCounter(frame_w,  frame_h, compress_ratio=compress_ratio, omit_scales=omit_scales, ignore_polys=dead_polygons)
 resized_dead_polygons = cc.ignore_polys_raw 
 
 total_dur = 0
 frame_count = 0
 total_dur_count = 0
-frame_skip = 10
-cv2.namedWindow('LSC-CNN', cv2.WINDOW_NORMAL)
+# frame_skip = 1
+# cv2.namedWindow('LSC-CNN', cv2.WINDOW_NORMAL)
 while cap.isOpened():
     ret, frame = cap.read()
     if not ret:
         break
     frame_count += 1
-    if frame_count%frame_skip != 0:
+    # if frame_count%frame_skip != 0:
+    #     continue
+    if (frame_count-1)%sample_rate_frame != 0:
         continue
     tic = time.time()
     show_img, count = cc.visualise_count(frame,)
-    print('Current crowd count: {}'.format(count))
-    draw_count(show_img, count, ignore_polys=resized_dead_polygons)
-    toc = time.time()
-    total_dur += (toc - tic)
-    total_dur_count += 1
-    cv2.imshow('LSC-CNN', show_img)
-    cv2.imwrite(os.path.join(out_dir,'{}.png'.format(frame_count)),frame)
-    # cv2.imwrite('{}.png')
-    out_vid.write(show_img)
-    if cv2.waitKey(1) & 0xff == ord('q'):
-        break
+    # print('Current crowd count: {}'.format(count))
+    # draw_count(show_img, count, ignore_polys=resized_dead_polygons)
+    # toc = time.time()
+    # total_dur += (toc - tic)
+    # total_dur_count += 1
+    # cv2.imwrite(os.path.join(out_dir,'{}.png'.format(frame_count)),frame)
+    # out_vid.write(show_img)
+    out_text = '{},{},{}\n'.format(round(frame_count/vid_fps), frame_count, count)
+    print(out_text)
+    out_csv.write(out_text)
+    # cv2.imshow('LSC-CNN', show_img)
+    # if cv2.waitKey(1) & 0xff == ord('q'):
+    #     break
+    cv2.waitKey(5)
 
 cap.release()
-out_vid.release()
+# out_vid.release()
+out_csv.close()
 
-print('Avrg inference time:{}'.format(total_dur/total_dur_count))
+# print('Avrg inference time:{}'.format(total_dur/total_dur_count))
