@@ -11,14 +11,11 @@ from drawer import draw_count
 parser = argparse.ArgumentParser()
 parser.add_argument('video', help='video to process')
 parser.add_argument('--cfg', help='Config file to specify no count/deadzones', default='ndp.cfg')
+parser.add_argument('--checkpoly', help='Flag to check polygons only', action='store_true')
 args = parser.parse_args()
 
 assert os.path.exists(args.video),'Video does not exist!'
-
 basename = os.path.basename(args.video).split('.')[0]
-out_dir = basename+'_out'
-if not os.path.exists(out_dir):
-    os.makedirs(out_dir)
 
 cap = cv2.VideoCapture(args.video)
 frame_w = cap.get(3)
@@ -48,6 +45,12 @@ sample_rate_frame = int(vid_fps * sample_rate_sec)
 display = config['VIDEO'].getboolean('Display')
 outputVideo = config['VIDEO'].getboolean('OutputVideo')
 outputCSV = config['VIDEO'].getboolean('OutputCSV')
+
+if args.checkpoly:
+    display = True
+    outputVideo = False
+    outputCSV = False
+
 if display:
     print('Displaying outputs')
     cv2.namedWindow('LSC-CNN', cv2.WINDOW_NORMAL)
@@ -58,13 +61,18 @@ if outputVideo:
     print('Outputing to video file')
     # fourcc = cv2.VideoWriter_fourcc('H','2','6','4')
     fourcc = cv2.VideoWriter_fourcc('M','J','P','G')
-    out_vid = cv2.VideoWriter(basename+'_cc.avi',fourcc, vid_fps, (int(frame_w), int(frame_h)))
+    out_vid = cv2.VideoWriter(os.path.join('outputs',basename+'_cc.avi'),fourcc, vid_fps, (int(frame_w), int(frame_h)))
 else:
     print('Not outputing to video file')
 
 if outputCSV:
     print('Outputing to CSV')
-    out_csv = open(basename+'_output.csv','w')
+    csv_dir = os.path.join('outputs',basename+'_output_CSVs')
+    if not os.path.exists(csv_dir):
+        os.makedirs(csv_dir)
+    assert os.path.isdir(csv_dir),'CSV dir path is not a dir!'
+    csv_path = os.path.join(csv_dir, basename+'_intermediate.csv')
+    out_csv = open(csv_path,'w')
     out_csv.write('TimeStamp(sec), FrameCount, PeopleCount\n')
 else:
     print('Not outputing to CSV.')
