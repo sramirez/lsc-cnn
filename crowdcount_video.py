@@ -87,7 +87,7 @@ try:
             continue
         tic = time.time()
         show_img, count = cc.visualise_count(frame,)
-        print('Current crowd count @ {}s: {}'.format(round(frame_count/vid_fps), count))
+        print('Current crowd count @ {}s: {}'.format(round((frame_count-1)/vid_fps,2), count))
         if display:
             draw_count(show_img, count, ignore_polys=resized_dead_polygons)
         toc = time.time()
@@ -97,7 +97,7 @@ try:
         if outputVideo:
             out_vid.write(show_img)
         if outputCSV:
-            out_text = '{},{},{}\n'.format(round(frame_count/vid_fps), frame_count, count)
+            out_text = '{},{},{}\n'.format(round( (frame_count-1) /vid_fps,2), frame_count, count)
             # print(out_text)
             out_csv.write(out_text)
         if display:
