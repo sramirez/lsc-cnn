@@ -1,5 +1,3 @@
-
-
 [Sampling video]
 - python3 sample_frames.py <video file> --num 10
 - Go into outputs/[video filename]_sample_frames and use the best frame
@@ -21,7 +19,7 @@
 
 [Post-processing]
 - Make sure speed profiles wanted are set in the cfg files
-- python3 postproc.py outputs/<video filename>_output_CSVs/<video filename>_intermediate.csv --cfg ndp.cfg
+- python3 postproc.py outputs/<video filename>_output_CSVs/<video filename>_intermediate.csv --cfg <cfg file for this cam> 
 - final output csvs will be generated at outputs/<video filename>_output_CSVs/, appended with the respective speed profiles
 
 

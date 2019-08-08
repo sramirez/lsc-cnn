@@ -57,7 +57,7 @@ for profile in postproc:
         pairs = []
         for interval, avg in results.items():
             interval_index = 1 if math.isinf(profile_interval_secs) else round( interval[1] / profile_interval_secs )
-            pairs.append( (interval_index, avg) )
+            pairs.append( (interval_index, round(avg,2)) )
         pairs = sorted( pairs, key=lambda x: x[0] )
         for pair in pairs:
             writer.writerow( pair )
