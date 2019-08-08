@@ -108,17 +108,36 @@ class CrowdCounter(object):
         return boxed_img, recount
 
 if __name__ == '__main__':
-    cc = CrowdCounter()
-    # img_path = 'shanghai_test_subset/IMG/shanghai_IMG_181.jpg'
-    img_path = 'golf_crowd.jpg'
+    img_path = '/home/levan/Workspace/lsc_cnn_docker/lsc-cnn/data/NDOC2019/ndoc_pano.JPG'
     assert os.path.exists(img_path)
     img = cv2.imread(img_path)
-    print('input shape:',img.shape)
-    show_img, count = cc.visualise_count(img, compress_ratio=1.3, omit_scales=[])
-    # show_img, count = cc.visualise_count(img, compress_ratio=1.1, omit_scales=[])
-    # print(img.shape)
+    img_h, img_w = img.shape[:2]
+    print('Img shape: {}x{}'.format(img_h, img_w))
+
+
+    dead_polygons = []
+
+    poly1 = '5404,2907,4494,2832,2039,2270,1394,2062,1009,1983,946,1846,876,1803,785,1811,620,1767,628,1854,459,1815,428,1708,365,1634,192,1567,39,1555,-1,1579,-1,3952,5398,3952'
+
+    poly2 = '7,11,-1,1378,337,1465,608,1477,1186,1485,1379,1536,1787,1551,2325,1508,2490,1551,3068,1634,3638,1669,4541,1716,4930,1712,5017,1642,5288,1626,5398,1626,5398,15'
+
+
+    dead_poly_strs = [poly1, poly2]
+    dead_polygons = []
+    for poly in dead_poly_strs:
+        polystring = [int(x) for x in poly.split(',')]
+        dead_polygons.append(list(zip(polystring[::2], polystring[1::2])))
+
+    b_wts = '/home/levan/Workspace/lsc_cnn_docker/lsc-cnn/models/part_b_scale_4_epoch_24_weights.pth'
+
+    # cc = CrowdCounter(img_w,  img_h, compress_ratio=2.5, ignore_polys=dead_polygons)
+    cc = CrowdCounter(img_w,  img_h, compress_ratio=2.5, ignore_polys=dead_polygons, weights_path=b_wts)
+    
+    resized_dead_polygons = cc.ignore_polys_raw 
+
+    show_img, count = cc.visualise_count(img,)
+
     print("Predicted count: {}".format(count))    
-    # print(show_img.shape)
 
     gt_count = None
     # import scipy.io
@@ -129,8 +148,8 @@ if __name__ == '__main__':
     # print('GT count: {}'.format(len(gt_pts)))
     # gt_count = len(gt_pts)
 
-    draw_count(show_img, count, gt_count=gt_count)
-    cv2.imwrite(os.path.basename(img_path).split('.')[0]+'_crowdcount.png', show_img)
+    draw_count(show_img, count, gt_count=gt_count, ignore_polys=resized_dead_polygons)
+    cv2.imwrite(os.path.join('outputs',os.path.basename(img_path).split('.')[0]+'_crowdcount.png'), show_img)
     cv2.namedWindow('LSC-CNN', cv2.WINDOW_NORMAL)
     cv2.imshow('LSC-CNN', show_img)
     cv2.waitKey(0)
