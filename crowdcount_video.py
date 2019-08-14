@@ -38,9 +38,16 @@ dead_polygons.append(skyline_polygon)
 
 compress_ratio = float(config['VIDEO']['CompressRatio'])
 assert compress_ratio > 0,'compress ratio given is negative.'
-omit_scales =[int(x) for x in config['VIDEO']['OmitScales'].split(',')]
+if 'OmitScales' in config['VIDEO']:
+    omit_scales = [int(x) for x in config['VIDEO']['OmitScales'].split(',')]
+else:
+    omit_scales = []
+
 sample_rate_sec = float(config['VIDEO']['SampleRate'])
-sample_rate_frame = int(vid_fps * sample_rate_sec)
+if sample_rate_sec > 0:
+    sample_rate_frame = int(vid_fps * sample_rate_sec)
+else:
+    sample_rate_frame = 1
 
 display = config['VIDEO'].getboolean('Display')
 outputVideo = config['VIDEO'].getboolean('OutputVideo')
@@ -57,14 +64,6 @@ if display:
 else: 
     print('Hiding outputs')
 
-if outputVideo:
-    print('Outputing to video file')
-    # fourcc = cv2.VideoWriter_fourcc('H','2','6','4')
-    fourcc = cv2.VideoWriter_fourcc('M','J','P','G')
-    out_vid = cv2.VideoWriter(os.path.join('outputs',basename+'_cc.avi'),fourcc, vid_fps, (int(frame_w), int(frame_h)))
-else:
-    print('Not outputing to video file')
-
 if outputCSV:
     print('Outputing to CSV')
     csv_dir = os.path.join('outputs',basename+'_output_CSVs')
@@ -78,6 +77,16 @@ else:
     print('Not outputing to CSV.')
 cc = CrowdCounter(frame_w,  frame_h, compress_ratio=compress_ratio, omit_scales=omit_scales, ignore_polys=dead_polygons)
 resized_dead_polygons = cc.ignore_polys_raw 
+
+
+if outputVideo:
+    print('Outputing to video file')
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    # fourcc = cv2.VideoWriter_fourcc('M','J','P','G')
+    # out_vid = cv2.VideoWriter(os.path.join('outputs',basename+'_cc.avi'),fourcc, vid_fps, (int(frame_w), int(frame_h)))
+    out_vid = cv2.VideoWriter(os.path.join('outputs',basename+'_crowdcount.mp4'),fourcc, vid_fps, (int(cc.new_img_w), int(cc.new_img_h)))
+else:
+    print('Not outputing to video file')
 
 total_dur = 0
 frame_count = 0
@@ -95,14 +104,15 @@ try:
             continue
         tic = time.time()
         show_img, count = cc.visualise_count(frame,)
-        print('Current crowd count @ {}s: {}'.format(round((frame_count-1)/vid_fps,2), count))
-        if display:
+        # print('Current crowd count @ {}s: {}'.format(round((frame_count-1)/vid_fps,2), count))
+        if display or outputVideo:
             draw_count(show_img, count, ignore_polys=resized_dead_polygons)
         toc = time.time()
         total_dur += (toc - tic)
         total_dur_count += 1
         # cv2.imwrite(os.path.join(out_dir,'{}.png'.format(frame_count)),frame)
         if outputVideo:
+            print('Writing out video')
             out_vid.write(show_img)
         if outputCSV:
             out_text = '{},{},{}\n'.format(round( (frame_count-1) /vid_fps,2), frame_count, count)
