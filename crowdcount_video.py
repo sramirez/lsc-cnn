@@ -12,6 +12,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('video', help='video to process')
 parser.add_argument('--cfg', help='Config file to specify no count/deadzones', default='ndp.cfg')
 parser.add_argument('--checkpoly', help='Flag to check polygons only', action='store_true')
+parser.add_argument('--displaypoly', help='Flag to display polygons', action='store_true')
 args = parser.parse_args()
 
 assert os.path.exists(args.video),'Video does not exist!'
@@ -21,7 +22,7 @@ cap = cv2.VideoCapture(args.video)
 frame_w = cap.get(3)
 frame_h = cap.get(4)
 vid_fps = cap.get(5)
-
+print(frame_w, frame_h, vid_fps)
 assert os.path.exists(args.cfg),'Config file given does not exist!'
 config = configparser.ConfigParser()
 config.read(args.cfg)
@@ -78,7 +79,6 @@ else:
 cc = CrowdCounter(frame_w,  frame_h, compress_ratio=compress_ratio, omit_scales=omit_scales, ignore_polys=dead_polygons)
 resized_dead_polygons = cc.ignore_polys_raw 
 
-
 if outputVideo:
     print('Outputing to video file')
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
@@ -92,44 +92,49 @@ total_dur = 0
 frame_count = 0
 total_dur_count = 0
 # frame_skip = 1
-try:
-    while cap.isOpened():
-        ret, frame = cap.read()
-        if not ret:
-            break
-        frame_count += 1
-        # if frame_count%frame_skip != 0:
-        #     continue
-        if (frame_count-1)%sample_rate_frame != 0:
-            continue
-        tic = time.time()
-        show_img, count = cc.visualise_count(frame,)
-        # print('Current crowd count @ {}s: {}'.format(round((frame_count-1)/vid_fps,2), count))
-        if display or outputVideo:
+assert cap.isOpened(),'vid cap not opened'
+# try:
+while cap.isOpened():
+    ret, frame = cap.read()
+    if not ret:
+        print(frame_count)
+        break
+    frame_count += 1
+    # if frame_count%frame_skip != 0:
+    #     continue
+    if (frame_count-1)%sample_rate_frame != 0:
+        continue
+    tic = time.time()
+    show_img, count = cc.visualise_count(frame,)
+    # print('Current crowd count @ {}s: {}'.format(round((frame_count-1)/vid_fps,2), count))
+    if display or outputVideo:
+        if args.displaypoly:
             draw_count(show_img, count, ignore_polys=resized_dead_polygons)
-        toc = time.time()
-        total_dur += (toc - tic)
-        total_dur_count += 1
-        # cv2.imwrite(os.path.join(out_dir,'{}.png'.format(frame_count)),frame)
-        if outputVideo:
-            print('Writing out video')
-            out_vid.write(show_img)
-        if outputCSV:
-            out_text = '{},{},{}\n'.format(round( (frame_count-1) /vid_fps,2), frame_count, count)
-            # print(out_text)
-            out_csv.write(out_text)
-        if display:
-            cv2.imshow('LSC-CNN', show_img)
-            if cv2.waitKey(1) & 0xff == ord('q'):
-                break
-            cv2.waitKey(5)
-except Exception as e:
-    pass
-finally:
-    cap.release()
-    if outputVideo:
-        out_vid.release()
+        else:
+            draw_count(show_img, count, ignore_polys=[])
+    toc = time.time()
+    total_dur += (toc - tic)
+    total_dur_count += 1
+    # cv2.imwrite(os.path.join(out_dir,'{}.png'.format(frame_count)),frame)
     if outputCSV:
-        out_csv.close()
-
+        out_text = '{},{},{}\n'.format(round( (frame_count-1) /vid_fps,2), frame_count, count)
+        # print(out_text)
+        out_csv.write(out_text)
+    if outputVideo:
+        print('Writing out video')
+        out_vid.write(show_img)
+    if display:
+        cv2.imshow('LSC-CNN', show_img)
+        if cv2.waitKey(1) & 0xff == ord('q'):
+            break
+        cv2.waitKey(5)
+# except Exception as e:
+#     print(e)
+# finally:
+cap.release()
+if outputVideo:
+    out_vid.release()
+if outputCSV:
+    out_csv.close()
+if total_dur_count:
     print('Avrg inference time:{}'.format(total_dur/total_dur_count))
