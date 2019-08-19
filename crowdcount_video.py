@@ -110,9 +110,6 @@ try:
                 draw_count(show_img, count, ignore_polys=resized_dead_polygons)
             else:
                 draw_count(show_img, count, ignore_polys=[])
-        toc = time.time()
-        total_dur += (toc - tic)
-        total_dur_count += 1
         # cv2.imwrite(os.path.join(out_dir,'{}.png'.format(frame_count)),frame)
         if outputCSV:
             out_text = '{},{},{}\n'.format(round( (frame_count-1) /vid_fps,2), frame_count, count)
@@ -125,6 +122,10 @@ try:
             if cv2.waitKey(1) & 0xff == ord('q'):
                 break
             # cv2.waitKey(5)
+        toc = time.time()
+        total_dur += (toc - tic)
+        total_dur_count += 1
+
 except Exception as e:
     print(e)
 finally:
