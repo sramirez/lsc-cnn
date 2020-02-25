@@ -1098,5 +1098,5 @@ if __name__ == '__main__':
     dataset = DataReader(path)
     
     # -- Train the model
-    # train()
+    train()
 
