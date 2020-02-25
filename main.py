@@ -33,7 +33,7 @@ from utils.loss_weights import *
 # Note that the data reader under default settings creates prediction maps at 
 # one-half resolution (wrt input sizes) and hence PRED_DOWNSCALE_FACTORS = 
 # (8, 4, 2, 1) translates to 1/16, 1/8, 1/4 and 1/2 prediction sizes (s={0,1,2,3}).
-PRED_DOWNSCALE_FACTORS = (8, 4, 2, 1)
+PRED_DOWNSCALE_FACTORS = (16, 8, 4, 2) # translates to 1/32, 1/16, 1/8, 1/4
 
 # Size increments for the box sizes (\gamma) as mentioned in the paper.
 GAMMA = [1, 1, 2, 4]
@@ -314,10 +314,10 @@ class networkFunctions():
 
             Yss_argmax = [torch.argmax(yss, dim=1) for yss in Yss_out]
         
-            alpha1 = torch.cuda.FloatTensor(loss_weights[3])  # 1/16 scale
-            alpha2 = torch.cuda.FloatTensor(loss_weights[2])  # 1/8 scale
-            alpha3 = torch.cuda.FloatTensor(loss_weights[1])  # 1/4 scale
-            alpha4 = torch.cuda.FloatTensor(loss_weights[0])  # 1/2 scale
+            alpha1 = torch.cuda.FloatTensor(loss_weights[3])  # 1/32 scale
+            alpha2 = torch.cuda.FloatTensor(loss_weights[2])  # 1/16 scale
+            alpha3 = torch.cuda.FloatTensor(loss_weights[1])  # 1/8 scale
+            alpha4 = torch.cuda.FloatTensor(loss_weights[0])  # 1/4 scale
 
             m_1 = nn.CrossEntropyLoss(size_average=True, weight=alpha1)
             m_2 = nn.CrossEntropyLoss(size_average=True, weight=alpha2)
@@ -398,10 +398,10 @@ class networkFunctions():
             Yss_out = Yss_out[::-1]
 
             Yss_argmax = [torch.argmax(yss, dim=1) for yss in Yss_out]
-            alpha1 = torch.cuda.FloatTensor(loss_weights[3])  # 1/16 scale
-            alpha2 = torch.cuda.FloatTensor(loss_weights[2])  # 1/8 scale
-            alpha3 = torch.cuda.FloatTensor(loss_weights[1])  # 1/4 scale
-            alpha4 = torch.cuda.FloatTensor(loss_weights[0])  # 1/2 scale
+            alpha1 = torch.cuda.FloatTensor(loss_weights[3])  # 1/32 scale
+            alpha2 = torch.cuda.FloatTensor(loss_weights[2])  # 1/16 scale
+            alpha3 = torch.cuda.FloatTensor(loss_weights[1])  # 1/8 scale
+            alpha4 = torch.cuda.FloatTensor(loss_weights[0])  # 1/4 scale
 
             m_1 = nn.CrossEntropyLoss(size_average=True, weight=alpha1)
             m_2 = nn.CrossEntropyLoss(size_average=True, weight=alpha2)

@@ -2,9 +2,9 @@ import cv2
 import torch
 import torch.nn as nn
 import numpy as np
-from utils_model import compute_boxes_and_sizes, get_upsample_output, get_box_and_dot_maps, get_boxed_img
+from utils_lsccnn import compute_boxes_and_sizes, get_upsample_output, get_box_and_dot_maps, get_boxed_img
 
-
+@DeprecationWarning
 class LSCCNN(nn.Module):
     def __init__(self, name='scale_4', checkpoint_path=None, output_downscale=2,
                  PRED_DOWNSCALE_FACTORS=(8, 4, 2, 1), GAMMA=(1, 1, 2, 4), NUM_BOXES_PER_SCALE=3):

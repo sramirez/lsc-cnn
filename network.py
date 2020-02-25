@@ -2,12 +2,17 @@
 network.py: Consists of the main architecture of LSC-CNN 
 Authors       : svp 
 """
+import ResnetBackbone
+import cv2
 import torch
 import torch.nn as nn
-import ResnetBackbone
+import numpy as np
+from utils_lsccnn import compute_boxes_and_sizes, get_upsample_output, get_box_and_dot_maps, get_boxed_img
+
 
 class LSCCNN(nn.Module):
-    def __init__(self, name='scale_4'):
+    def __init__(self, name='scale_4', checkpoint_path = None, output_downscale = 2,
+        PRED_DOWNSCALE_FACTORS = (16, 8, 4, 2), GAMMA = (1, 1, 2, 4), NUM_BOXES_PER_SCALE = 3):
         super(LSCCNN, self).__init__()
         self.name = name
         # OPT: Use torchvision.transforms instead
@@ -20,6 +25,9 @@ class LSCCNN(nn.Module):
             2).unsqueeze(3)
 
         self.relu = nn.ReLU(inplace=True)
+
+        self.BOXES, self.BOX_SIZE_BINS = compute_boxes_and_sizes(PRED_DOWNSCALE_FACTORS, GAMMA, NUM_BOXES_PER_SCALE)
+        self.output_downscale = output_downscale
 
         self.backbone = ResnetBackbone()
         self.layer1 = self.backbone.layer1  # 64 in_channels (64, 256)
@@ -69,8 +77,8 @@ class LSCCNN(nn.Module):
 
         # output layer 1: 1024
         # output layer 2: 512
-
         # in: 1024 / 2 = 512
+        # scales: 1/4, 1/8, 1/16, 1/32
         self.transpose_1 = nn.ConvTranspose2d(1024, 1024, kernel_size=3, stride=2, padding=1, output_padding=1)
         self.conv_after_transpose_1_1 = nn.Conv2d(1024, 512, kernel_size=3, padding=1)
 
@@ -91,20 +99,9 @@ class LSCCNN(nn.Module):
 
         self.transpose_4_3 = nn.ConvTranspose2d(256, 256, kernel_size=3, stride=2, padding=1, output_padding=1)
         self.conv_after_transpose_4_3 = nn.Conv2d(256, 128, kernel_size=3, padding=1)
-        
-        #self.conv_middle_1 = nn.Conv2d(256, 512, kernel_size=3, padding=1) # repeated from layer 4
-        #self.conv_middle_2 = nn.Conv2d(512, 512, kernel_size=3, padding=1)
-        #self.conv_middle_3 = nn.Conv2d(512, 512, kernel_size=3, padding=1)
-        #self.conv_mid_4 = nn.Conv2d(512, 256, kernel_size=3, padding=1)
 
-        #self.conv_lowest_1 = nn.Conv2d(128, 256, kernel_size=3, padding=1) # repeated from layer 3
-        #self.conv_lowest_2 = nn.Conv2d(256, 256, kernel_size=3, padding=1)
-        #self.conv_lowest_3 = nn.Conv2d(256, 256, kernel_size=3, padding=1)
-        #self.conv_lowest_4 = nn.Conv2d(256, 128, kernel_size=3, padding=1)
-
-        #self.conv_scale1_1 = nn.Conv2d(64, 128, kernel_size=3, padding=1) # repeated from layer 2
-        #self.conv_scale1_2 = nn.Conv2d(128, 128, kernel_size=3, padding=1)
-        #self.conv_scale1_3 = nn.Conv2d(128, 64, kernel_size=3, padding=1)
+        if checkpoint_path is not None:
+            self.load_state_dict(torch.load(checkpoint_path))
         
     # initialize all conv W' with a He normal initialization
     def _initialize_weights(self):
@@ -125,8 +122,7 @@ class LSCCNN(nn.Module):
         return tensor
 
     def forward(self, x):
-        mean_sub_input = x
-        mean_sub_input -= self.rgb_means
+        mean_sub_input = x - self.rgb_means
         l1, l2, l3, l4 = self.backbone.forward(mean_sub_input) # l4 is the last layer
 
         #################### Stage 1 ##########################
@@ -184,3 +180,15 @@ class LSCCNN(nn.Module):
 
         if self.name == "scale_4":
             return main_out_rest, sub1_out_rest, sub2_out_rest, sub4_out_rest
+
+    def predict_single_image(self, image, nms_thresh=0.25, thickness=2, multi_colours=True):
+        if image.shape[0] % 16 or image.shape[1] % 16:
+            image = cv2.resize(image, (image.shape[1]//16*16, image.shape[0]//16*16))
+        img_tensor = torch.from_numpy(image.transpose((2, 0, 1)).astype(np.float32)).unsqueeze(0)
+        with torch.no_grad():
+            out = self.forward(img_tensor.cuda())
+        out = get_upsample_output(out, self.output_downscale)
+        pred_dot_map, pred_box_map = get_box_and_dot_maps(out, nms_thresh, self.BOXES)
+        img_out = get_boxed_img(image, pred_box_map, pred_box_map, pred_dot_map, self.output_downscale,
+                                self.BOXES, self.BOX_SIZE_BINS, thickness=thickness, multi_colours=multi_colours)
+        return pred_dot_map, pred_box_map, img_out
