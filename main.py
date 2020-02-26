@@ -437,73 +437,6 @@ class networkFunctions():
         return self.train_funcs, self.test_funcs
 
 '''
-    This loads the model for training from ImageNet weights
-    initialization for VGG backbone.
-    
-    Parameters
-    -----------
-    net: (torch model) network
-    dont_load: (list) list of layers, for which weights 
-               should not be loaded.
-               
-    Returns
-    ---------
-    Returns nothing. The weights are replaced inplace.
-'''
-def load_model(net, dont_load=[]):
-    
-    if 'scale_4' in net.name:
-        
-        cfg = OrderedDict()
-        cfg['conv1_1'] = 0
-        cfg['conv1_2'] = 2
-        cfg['conv2_1'] = 5
-        cfg['conv2_2'] = 7
-        cfg['conv3_1'] = 10
-        cfg['conv3_2'] = 12
-        cfg['conv3_3'] = 14
-        cfg['conv4_1'] = 17
-        cfg['conv4_2'] = 19
-        cfg['conv4_3'] = 22
-        cfg['conv_middle_1'] = 'conv4_1'
-        cfg['conv_middle_2'] = 'conv4_2'
-        cfg['conv_middle_3'] = 'conv4_3'
-        cfg['conv_lowest_1'] = 'conv3_1'
-        cfg['conv_lowest_2'] = 'conv3_2'
-        cfg['conv_lowest_3'] = 'conv3_3'
-        cfg['conv_scale1_1'] = 'conv2_1'
-        cfg['conv_scale1_2'] = 'conv2_2'
-
-        print ('loading model ', net.name)
-        base_dir = "../imagenet_vgg_weights/"
-        layer_copy_count = 0
-        for layer in cfg.keys():
-            if layer in dont_load:
-                print (layer, 'skipped.')
-                continue
-            print ("Copying ", layer)
-            
-            for name, module in net.named_children():
-                if layer == name and (not layer.startswith("conv_middle_")) and (not layer.startswith("conv_lowest_") and (not layer.startswith("conv_scale1_"))):
-                    lyr = module
-                    W = np.load(base_dir + layer + "W.npy")
-                    b = np.load(base_dir + layer + "b.npy")
-                    lyr.weight.data.copy_(torch.from_numpy(W))
-                    lyr.bias.data.copy_(torch.from_numpy(b))
-                    layer_copy_count += 1
-                elif (layer.startswith("conv_middle_") or layer.startswith("conv_lowest_")) and name == layer:
-                    lyr = module
-                    W = np.load(base_dir + cfg[layer] + "W.npy")
-                    b = np.load(base_dir + cfg[layer] + "b.npy")
-                    lyr.weight.data.copy_(torch.from_numpy(W))
-                    lyr.bias.data.copy_(torch.from_numpy(b))
-                    layer_copy_count += 1
-
-        print(layer_copy_count, "Copy count")
-        assert layer_copy_count == 16
-        print ('Done.')
-
-'''
     Function to get localization error (alias offset error)
     Parameters
     -----------
@@ -1027,9 +960,8 @@ def train():
 
     dataset.test_batch_size = 8
     global network
-    network = LSCCNN(args, nofreeze=True, name='scale_4', output_downscale=4)
 
-    load_model(network)
+    network = LSCCNN(args, output_downscale=4)
 
     model_save_path = os.path.join(model_save_dir, 'train2')
     if not os.path.exists(model_save_path):

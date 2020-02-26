@@ -2,7 +2,8 @@
 network.py: Consists of the main architecture of LSC-CNN 
 Authors       : svp 
 """
-import ResnetBackbone
+from ResnetBackbone import ResnetBackbone
+from torchvision.models.resnet import resnet101
 import cv2
 import torch
 import torch.nn as nn
@@ -29,7 +30,8 @@ class LSCCNN(nn.Module):
         self.BOXES, self.BOX_SIZE_BINS = compute_boxes_and_sizes(PRED_DOWNSCALE_FACTORS, GAMMA, NUM_BOXES_PER_SCALE)
         self.output_downscale = output_downscale
 
-        self.backbone = ResnetBackbone()
+        #self.backbone = ResnetBackbone()
+        self.backbone = resnet101(pretrained=True)
         self.layer1 = self.backbone.layer1  # 64 in_channels (64, 256)
         self.layer2 = self.backbone.layer2  # 64 in_channels (128, 512)
         self.layer3 = self.backbone.layer3  # 64 in_channels (256, 1024)
@@ -123,7 +125,34 @@ class LSCCNN(nn.Module):
 
     def forward(self, x):
         mean_sub_input = x - self.rgb_means
-        l1, l2, l3, l4 = self.backbone.forward(mean_sub_input) # l4 is the last layer
+        l1 = None
+        l2 = None
+        l3 = None
+        l4 = None
+
+        def resl1_hook(module, input_, output):
+            nonlocal l1
+            l1 = output
+
+        def resl2_hook(module, input_, output):
+            nonlocal l2
+            l2 = output
+
+        def resl3_hook(module, input_, output):
+            nonlocal l3
+            l3 = output
+
+        def resl4_hook(module, input_, output):
+            nonlocal l4
+            l4 = output
+
+        self.layer1.register_forward_hook(resl1_hook)
+        self.layer2.register_forward_hook(resl2_hook)
+        self.layer3.register_forward_hook(resl3_hook)
+        self.layer4.register_forward_hook(resl4_hook)
+
+        self.backbone.forward(mean_sub_input)  # partial output are saved in local variables
+        #l1, l2, l3, l4 = self.backbone.forward(mean_sub_input) # l4 is the last layer
 
         #################### Stage 1 ##########################
         main_out_l4 = self.relu(self.conv_before_transpose_1(self.relu(l4)))
