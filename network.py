@@ -12,7 +12,8 @@ from utils_lsccnn import compute_boxes_and_sizes, get_upsample_output, get_box_a
 
 
 class LSCCNN(nn.Module):
-    def __init__(self, name='scale_4', checkpoint_path = None, output_downscale = 2):
+    def __init__(self, name='scale_4', checkpoint_path = None, output_downscale = 2,
+                 PRED_DOWNSCALE_FACTORS = (16, 8, 4, 2), GAMMA = (1, 1, 2, 4), NUM_BOXES_PER_SCALE = 3):
         super(LSCCNN, self).__init__()
         self.name = name
         # OPT: Use torchvision.transforms instead
@@ -26,12 +27,19 @@ class LSCCNN(nn.Module):
 
         self.relu = nn.ReLU(inplace=True)
 
+        self.BOXES, self.BOX_SIZE_BINS = compute_boxes_and_sizes(PRED_DOWNSCALE_FACTORS, GAMMA, NUM_BOXES_PER_SCALE)
+        self.output_downscale = output_downscale
+
         #self.backbone = ResnetBackbone()
-        self.backbone = resnet101(pretrained=True)
-        self.layer1 = self.backbone.layer1  # 64 in_channels (64, 256)
-        self.layer2 = self.backbone.layer2  # 64 in_channels (128, 512)
-        self.layer3 = self.backbone.layer3  # 64 in_channels (256, 1024)
-        self.layer4 = self.backbone.layer4  # 64 in_channels (512, 2048)
+        backbone = resnet101(pretrained=True)
+        self.conv1Res = backbone.conv1
+        self.bn1Res = backbone.bn1
+        self.reluRes = backbone.relu
+        self.maxPoolRes = backbone.maxpool
+        self.layer1 = backbone.layer1  # 64 in_channels (64, 256)
+        self.layer2 = backbone.layer2  # 64 in_channels (128, 512)
+        self.layer3 = backbone.layer3  # 64 in_channels (256, 1024)
+        self.layer4 = backbone.layer4  # 64 in_channels (512, 2048)
 
         # New top-down feature modulator (after concat section)
         # prev_level / 2 + actual / 2
@@ -101,10 +109,6 @@ class LSCCNN(nn.Module):
         if checkpoint_path is not None:
             self.load_state_dict(torch.load(checkpoint_path))
 
-    def compute_box_sizes(self, PRED_DOWNSCALE_FACTORS = (16, 8, 4, 2), GAMMA = (1, 1, 2, 4), NUM_BOXES_PER_SCALE = 3):
-        self.BOXES, self.BOX_SIZE_BINS = compute_boxes_and_sizes(PRED_DOWNSCALE_FACTORS, GAMMA, NUM_BOXES_PER_SCALE)
-        self.output_downscale = output_downscale
-
     def _initialize_weights(self):
         if True:
             for m in self.modules():
@@ -124,33 +128,17 @@ class LSCCNN(nn.Module):
 
     def forward(self, x):
         mean_sub_input = x - self.rgb_means
-        l1 = None
-        l2 = None
-        l3 = None
-        l4 = None
 
-        def resl1_hook(module, input_, output):
-            nonlocal l1
-            l1 = output
+        x1 = self.conv1Res(mean_sub_input)
+        x1 = self.bn1Res(x1)
+        x1 = self.reluRes(x1)
+        x1 = self.maxPoolRes(x1)
 
-        def resl2_hook(module, input_, output):
-            nonlocal l2
-            l2 = output
-
-        def resl3_hook(module, input_, output):
-            nonlocal l3
-            l3 = output
-
-        def resl4_hook(module, input_, output):
-            nonlocal l4
-            l4 = output
-
-        self.layer1.register_forward_hook(resl1_hook)
-        self.layer2.register_forward_hook(resl2_hook)
-        self.layer3.register_forward_hook(resl3_hook)
-        self.layer4.register_forward_hook(resl4_hook)
-
-        self.backbone.forward(mean_sub_input)  # partial output are saved in local variables
+        l1 = self.layer1(x1)
+        l2 = self.layer2(l1)
+        l3 = self.layer3(l2)
+        l4 = self.layer4(l3)
+        #self.backbone.forward(mean_sub_input)  # partial output are saved in local variables
         #l1, l2, l3, l4 = self.backbone.forward(mean_sub_input) # l4 is the last layer
 
         #################### Stage 1 ##########################
