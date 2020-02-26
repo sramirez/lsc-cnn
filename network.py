@@ -12,8 +12,7 @@ from utils_lsccnn import compute_boxes_and_sizes, get_upsample_output, get_box_a
 
 
 class LSCCNN(nn.Module):
-    def __init__(self, name='scale_4', checkpoint_path = None, output_downscale = 2,
-        PRED_DOWNSCALE_FACTORS = (16, 8, 4, 2), GAMMA = (1, 1, 2, 4), NUM_BOXES_PER_SCALE = 3):
+    def __init__(self, name='scale_4', checkpoint_path = None, output_downscale = 2):
         super(LSCCNN, self).__init__()
         self.name = name
         # OPT: Use torchvision.transforms instead
@@ -26,9 +25,6 @@ class LSCCNN(nn.Module):
             2).unsqueeze(3)
 
         self.relu = nn.ReLU(inplace=True)
-
-        self.BOXES, self.BOX_SIZE_BINS = compute_boxes_and_sizes(PRED_DOWNSCALE_FACTORS, GAMMA, NUM_BOXES_PER_SCALE)
-        self.output_downscale = output_downscale
 
         #self.backbone = ResnetBackbone()
         self.backbone = resnet101(pretrained=True)
@@ -104,8 +100,11 @@ class LSCCNN(nn.Module):
 
         if checkpoint_path is not None:
             self.load_state_dict(torch.load(checkpoint_path))
-        
-    # initialize all conv W' with a He normal initialization
+
+    def compute_box_sizes(self, PRED_DOWNSCALE_FACTORS = (16, 8, 4, 2), GAMMA = (1, 1, 2, 4), NUM_BOXES_PER_SCALE = 3):
+        self.BOXES, self.BOX_SIZE_BINS = compute_boxes_and_sizes(PRED_DOWNSCALE_FACTORS, GAMMA, NUM_BOXES_PER_SCALE)
+        self.output_downscale = output_downscale
+
     def _initialize_weights(self):
         if True:
             for m in self.modules():

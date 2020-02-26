@@ -289,7 +289,6 @@ class networkFunctions():
 
             if torch.cuda.is_available():
                 X = torch.autograd.Variable(torch.from_numpy(Xs)).cuda()
-                
                 Y = torch.autograd.Variable(torch.FloatTensor(Ys)).cuda()
                 Yss = [Y]
             else:
@@ -297,11 +296,8 @@ class networkFunctions():
             for s in range(0, 3):
                 Yss.append(torch.nn.functional.avg_pool2d(Yss[s], (2, 2)) * 4)
             
-            output_vars = [network(X, None)]
-
-
-            outputs_1 = [out for out in output_vars[0]]
-            
+            output_vars = [network.forward(X)]
+            print(output_vars)
             Yss_out = self.get_box_gt(Yss) # Making 4 channel ground truth
             Yss = Yss[::-1]        # Reverse GT for uniformity of having lowest scale in the beginning
             Yss_out = Yss_out[::-1]    # Reverse pred for uniformity of having lowest scale in the beginning
